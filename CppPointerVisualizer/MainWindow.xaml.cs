@@ -41,5 +41,11 @@ namespace CppPointerVisualizer
                 CodeInput.Text = item.Tag?.ToString() ?? "";
             }
         }
+
+        private void AutoRouteButton_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.AutoRoute();
+            NodeGraphControl.Offset = new System.Windows.Point(0, 0);
+        }
     }
 }

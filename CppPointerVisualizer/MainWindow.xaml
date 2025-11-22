@@ -186,12 +186,30 @@
 
         <!-- Правая панель: визуализация -->
         <Border Grid.Row="1" Grid.Column="1" Background="#FF1E1E1E">
-            <ctrl:NodeGraph x:Name="NodeGraphControl"
-                            MoveWithMouse="Right"
-                            ItemsSource="{Binding NodeViewModels}"
-                            ItemContainerStyle="{StaticResource DefaultNodeStyle}"
-                            NodeLinks="{Binding NodeLinkViewModels}"
-                            NodeLinkStyle="{StaticResource NodeLinkStyle}"/>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Orientation="Horizontal"
+                            Grid.Row="0"
+                            HorizontalAlignment="Right"
+                            Margin="10">
+                    <Button Content="Авто-раскладка"
+                            Style="{StaticResource ButtonStyle}"
+                            Padding="12,6"
+                            Click="AutoRouteButton_Click"/>
+                </StackPanel>
+
+                <ctrl:NodeGraph x:Name="NodeGraphControl"
+                                Grid.Row="1"
+                                MoveWithMouse="Right"
+                                ItemsSource="{Binding NodeViewModels}"
+                                ItemContainerStyle="{StaticResource DefaultNodeStyle}"
+                                NodeLinks="{Binding NodeLinkViewModels}"
+                                NodeLinkStyle="{StaticResource NodeLinkStyle}"/>
+            </Grid>
         </Border>
     </Grid>
 </Window>
