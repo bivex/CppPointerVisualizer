@@ -73,30 +73,27 @@ namespace CppPointerVisualizer.Parser
 
         public override MemoryState VisitPointerDeclaration(CppPointerParser.PointerDeclarationContext context)
         {
-            var constTokens = context.CONST();
-            bool isConst = false;
+            // Новая грамматика: constQualifier* type pointerSpec+ IDENTIFIER '=' expression
+            var constQualifiers = context.constQualifier();
+            var pointerSpecs = context.pointerSpec();
+            
+            bool isConst = constQualifiers != null && constQualifiers.Length > 0;
             bool isPointerConst = false;
-
-            if (constTokens != null && constTokens.Length > 0)
+            
+            // Проверяем, есть ли const после указателей (в pointerSpec)
+            if (pointerSpecs != null && pointerSpecs.Length > 0)
             {
-                // Check position of first CONST token relative to type
-                if (constTokens[0].Symbol.TokenIndex < context.type().Start.TokenIndex)
-                {
-                    isConst = true;
-                }
-
-                // Check if there's a CONST after the pointer operator(s)
-                if (constTokens.Length > 1 ||
-                    (constTokens.Length == 1 && constTokens[0].Symbol.TokenIndex > context.type().Stop.TokenIndex))
+                // Проверяем последний pointerSpec на наличие CONST
+                var lastSpec = pointerSpecs[pointerSpecs.Length - 1];
+                if (lastSpec.CONST() != null)
                 {
                     isPointerConst = true;
-                    if (constTokens.Length > 1) isConst = true;
                 }
             }
 
             string type = context.type().GetText();
             string name = context.IDENTIFIER().GetText();
-            int pointerLevel = context.pointerOperator().Length;
+            int pointerLevel = pointerSpecs?.Length ?? 0;
 
             string? pointsTo = null;
             if (context.expression() is CppPointerParser.AddressOfExprContext addressOf)
@@ -113,6 +110,16 @@ namespace CppPointerVisualizer.Parser
                      context.expression() is CppPointerParser.ZeroExprContext)
             {
                 pointsTo = "nullptr";
+            }
+            else if (context.expression() is CppPointerParser.IdentifierExprContext identExpr)
+            {
+                // Для указателей на указатели: int** pp = &p;
+                string targetName = identExpr.IDENTIFIER().GetText();
+                var target = _state.GetObjectByName(targetName);
+                if (target != null)
+                {
+                    pointsTo = target.Address;
+                }
             }
 
             var obj = new MemoryObject
@@ -134,12 +141,17 @@ namespace CppPointerVisualizer.Parser
 
         public override MemoryState VisitReferenceDeclaration(CppPointerParser.ReferenceDeclarationContext context)
         {
+            // Новая грамматика: CONST? type pointerSpec* '&' CONST? IDENTIFIER '=' expression
             var constTokens = context.CONST();
             bool isConst = constTokens != null && constTokens.Length > 0 &&
                           constTokens[0].Symbol.TokenIndex < context.type().Start.TokenIndex;
 
             string type = context.type().GetText();
             string name = context.IDENTIFIER().GetText();
+            
+            // Проверяем, есть ли pointerSpec (для ссылок на указатели: int*& pr)
+            var pointerSpecs = context.pointerSpec();
+            int pointerLevel = pointerSpecs?.Length ?? 0;
 
             string? pointsTo = null;
             object? value = null;
@@ -178,7 +190,8 @@ namespace CppPointerVisualizer.Parser
                 ObjectType = MemoryObjectType.Reference,
                 Address = GenerateAddress(),
                 PointsTo = pointsTo,
-                IsConst = isConst
+                IsConst = isConst,
+                PointerLevel = pointerLevel
             };
 
             _state.Objects.Add(obj);

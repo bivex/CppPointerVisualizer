@@ -15,22 +15,40 @@ declaration
     : variableDeclaration
     | pointerDeclaration
     | referenceDeclaration
+    | arrayDeclaration
     ;
 
+// Обычная переменная: int val = 512;
 variableDeclaration
     : CONST? type IDENTIFIER '=' expression
     ;
 
+// Указатели (включая многоуровневые): int* p, int** pp, const int* pc
 pointerDeclaration
-    : CONST? type pointerOperator+ CONST? IDENTIFIER '=' expression
+    : constQualifier* type pointerSpec+ IDENTIFIER '=' expression
     ;
 
+// Спецификатор указателя с возможным const
+pointerSpec
+    : '*' CONST?
+    ;
+
+// Ссылки (включая ссылки на указатели): int& r, int*& pr
 referenceDeclaration
-    : CONST? type pointerOperator* CONST? '&' IDENTIFIER '=' expression
+    : CONST? type pointerSpec* '&' CONST? IDENTIFIER '=' expression
     ;
 
-pointerOperator
-    : '*'
+// Массивы: int arr[3] = {1,2,3}
+arrayDeclaration
+    : CONST? type IDENTIFIER '[' NUMBER ']' '=' arrayInitializer
+    ;
+
+arrayInitializer
+    : '{' expression (',' expression)* '}'
+    ;
+
+constQualifier
+    : CONST
     ;
 
 type
@@ -44,6 +62,7 @@ expression
     | STRING                        # StringExpr
     | '&' IDENTIFIER                # AddressOfExpr
     | '*' IDENTIFIER                # DereferenceExpr
+    | '&' IDENTIFIER '[' NUMBER ']' # ArrayAddressExpr
     | NULLPTR                       # NullptrExpr
     | NULL                          # NullExpr
     | '0'                           # ZeroExpr
