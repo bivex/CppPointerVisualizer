@@ -1,0 +1,197 @@
+<Window x:Class="CppPointerVisualizer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctrl="clr-namespace:NodeGraph.NET6.Controls;assembly=NodeGraph.NET6"
+        xmlns:vm="clr-namespace:CppPointerVisualizer.ViewModels"
+        Title="C++ Pointer &amp; Reference Visualizer"
+        Height="800" Width="1400"
+        Background="#FF1E1E1E">
+
+    <Window.Resources>
+        <Style x:Key="CodeTextBoxStyle" TargetType="TextBox">
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="#FF2D2D30"/>
+            <Setter Property="Foreground" Value="#FFDCDCDC"/>
+            <Setter Property="BorderBrush" Value="#FF3F3F46"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10"/>
+        </Style>
+
+        <Style x:Key="ButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FF0E639C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FF1177BB"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Стили для NodeGraph -->
+        <Style x:Key="NodeInputStyle" TargetType="{x:Type ctrl:NodeInputContent}" BasedOn="{StaticResource {x:Type ctrl:NodeInputContent}}">
+            <Setter Property="Guid" Value="{Binding Guid, Mode=OneWay}"/>
+            <Setter Property="Content" Value="{Binding Label}"/>
+            <Setter Property="IsEnabled" Value="{Binding IsEnable}"/>
+            <Setter Property="AllowToConnectMultiple" Value="{Binding AllowToConnectMultiple}"/>
+        </Style>
+
+        <Style x:Key="NodeOutputStyle" TargetType="{x:Type ctrl:NodeOutputContent}" BasedOn="{StaticResource {x:Type ctrl:NodeOutputContent}}">
+            <Setter Property="Guid" Value="{Binding Guid, Mode=OneWay}"/>
+            <Setter Property="Content" Value="{Binding Label}"/>
+            <Setter Property="IsEnabled" Value="{Binding IsEnable}"/>
+        </Style>
+
+        <Style x:Key="NodeLinkStyle" TargetType="{x:Type ctrl:NodeLink}" BasedOn="{StaticResource {x:Type ctrl:NodeLink}}">
+            <Setter Property="Guid" Value="{Binding Guid, Mode=OneWay}"/>
+            <Setter Property="OutputConnectorGuid" Value="{Binding OutputConnectorGuid, Mode=OneWay}"/>
+            <Setter Property="InputConnectorGuid" Value="{Binding InputConnectorGuid, Mode=OneWay}"/>
+            <Setter Property="IsLocked" Value="{Binding IsLocked, Mode=OneWay}"/>
+            <Setter Property="IsSelected" Value="{Binding IsSelected}"/>
+        </Style>
+
+        <Style x:Key="DefaultNodeStyle" TargetType="{x:Type ctrl:DefaultNode}" BasedOn="{StaticResource {x:Type ctrl:DefaultNode}}">
+            <Setter Property="Guid" Value="{Binding Guid, Mode=OneWay}"/>
+            <Setter Property="Position" Value="{Binding Position}"/>
+            <Setter Property="IsSelected" Value="{Binding IsSelected}"/>
+            <Setter Property="Inputs" Value="{Binding InputsEnumerable}"/>
+            <Setter Property="Outputs" Value="{Binding OutputsEnumerable}"/>
+            <Setter Property="InputStyle" Value="{StaticResource NodeInputStyle}"/>
+            <Setter Property="OutputStyle" Value="{StaticResource NodeOutputStyle}"/>
+            <Setter Property="SizeChangedCommand" Value="{Binding SizeChangedCommand}"/>
+            <Setter Property="HeaderContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <StackPanel Background="#FF2D2D30">
+                            <TextBlock Text="{Binding Name}"
+                                       Foreground="#FFDCDCDC"
+                                       FontWeight="Bold"
+                                       FontSize="14"
+                                       Padding="8,4"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <StackPanel Margin="8" MinWidth="200">
+                            <TextBlock Text="{Binding TypeDescription}"
+                                       Foreground="#FF9CDCFE"
+                                       FontSize="12"
+                                       Margin="0,2"/>
+                            <TextBlock Text="{Binding ValueOrTarget}"
+                                       Foreground="#FFCE9178"
+                                       FontSize="12"
+                                       Margin="0,2"/>
+                            <TextBlock Text="{Binding Address}"
+                                       Foreground="#FF808080"
+                                       FontSize="11"
+                                       Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding Modifiability}"
+                                       Foreground="#FF4EC9B0"
+                                       FontSize="11"
+                                       Margin="0,2"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Заголовок -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#FF2D2D30" Padding="15">
+            <TextBlock Text="C++ Указатели и Ссылки - Визуализатор"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Foreground="#FFDCDCDC"/>
+        </Border>
+
+        <!-- Левая панель: код и примеры -->
+        <Border Grid.Row="1" Grid.Column="0" Background="#FF252526" BorderBrush="#FF3F3F46" BorderThickness="0,0,1,0">
+            <Grid Margin="15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="200"/>
+                </Grid.RowDefinitions>
+
+                <!-- Ввод кода -->
+                <TextBlock Grid.Row="0" Text="Введите C++ код:"
+                           Foreground="#FFDCDCDC"
+                           FontSize="14"
+                           Margin="0,0,0,10"/>
+
+                <TextBox Grid.Row="1"
+                         x:Name="CodeInput"
+                         Style="{StaticResource CodeTextBoxStyle}"
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         Text="int a = 42;&#x0a;int *p = &amp;a;&#x0a;int &amp;ref = a;"/>
+
+                <StackPanel Grid.Row="2" Margin="0,15,0,15">
+                    <Button Content="Визуализировать"
+                            Style="{StaticResource ButtonStyle}"
+                            Click="VisualizeButton_Click"
+                            Margin="0,0,0,10"/>
+
+                    <TextBlock Text="Примеры:"
+                               Foreground="#FFDCDCDC"
+                               FontSize="14"
+                               Margin="0,10,0,10"/>
+                </StackPanel>
+
+                <!-- Список примеров -->
+                <ListBox Grid.Row="3"
+                         x:Name="ExamplesList"
+                         Background="#FF2D2D30"
+                         Foreground="#FFDCDCDC"
+                         BorderBrush="#FF3F3F46"
+                         SelectionChanged="ExamplesList_SelectionChanged">
+                    <ListBoxItem Content="1. Базовый: указатель и ссылка" Tag="int a = 42;&#x0a;int *p = &amp;a;&#x0a;int &amp;ref = a;"/>
+                    <ListBoxItem Content="2. Const указатель: const int *p" Tag="int a = 42;&#x0a;const int *p = &amp;a;"/>
+                    <ListBoxItem Content="3. Указатель const: int* const p" Tag="int a = 42;&#x0a;int b = 100;&#x0a;int* const p = &amp;a;"/>
+                    <ListBoxItem Content="4. Полный const: const int* const p" Tag="int a = 42;&#x0a;const int* const p = &amp;a;"/>
+                    <ListBoxItem Content="5. Двойной указатель: int **pp" Tag="int a = 42;&#x0a;int *p = &amp;a;&#x0a;int **pp = &amp;p;"/>
+                    <ListBoxItem Content="6. Тройной указатель: int ***ppp" Tag="int value = 100;&#x0a;int *p1 = &amp;value;&#x0a;int **p2 = &amp;p1;&#x0a;int ***p3 = &amp;p2;"/>
+                    <ListBoxItem Content="7. Цепочка указателей" Tag="int x = 10;&#x0a;int y = 20;&#x0a;int z = 30;&#x0a;int *px = &amp;x;&#x0a;int *py = &amp;y;&#x0a;int *pz = &amp;z;&#x0a;int **ppx = &amp;px;"/>
+                    <ListBoxItem Content="8. Nullptr указатели" Tag="int a = 42;&#x0a;int *p1 = &amp;a;&#x0a;int *p2 = nullptr;&#x0a;int **pp = &amp;p1;"/>
+                    <ListBoxItem Content="9. Const на разных уровнях" Tag="int val = 100;&#x0a;const int *p1 = &amp;val;&#x0a;int* const p2 = &amp;val;&#x0a;const int* const p3 = &amp;val;"/>
+                    <ListBoxItem Content="10. Ссылки на указатели" Tag="int num = 777;&#x0a;int *ptr = &amp;num;&#x0a;int* &amp;refPtr = ptr;"/>
+                    <ListBoxItem Content="11. Смешанная цепь" Tag="int data = 88;&#x0a;int *p = &amp;data;&#x0a;int &amp;r = data;&#x0a;int **pp = &amp;p;&#x0a;int &amp;rp = *p;"/>
+                    <ListBoxItem Content="12. Множественные типы" Tag="int i = 1;&#x0a;double d = 3.14;&#x0a;const char *str = &quot;Hello&quot;;&#x0a;int *pi = &amp;i;&#x0a;double *pd = &amp;d;"/>
+                    <ListBoxItem Content="13. Const double указатели" Tag="int x = 5;&#x0a;const int *p1 = &amp;x;&#x0a;const int **pp1 = &amp;p1;&#x0a;int* const *pp2 = &amp;p1;"/>
+                    <ListBoxItem Content="14. Сложная структура" Tag="int a = 11;&#x0a;int b = 22;&#x0a;int c = 33;&#x0a;int *p1 = &amp;a;&#x0a;int *p2 = &amp;b;&#x0a;int **pp1 = &amp;p1;&#x0a;int **pp2 = &amp;p2;&#x0a;int ***ppp = &amp;pp1;"/>
+                    <ListBoxItem Content="15. Полный спектр const" Tag="int val = 256;&#x0a;int *p = &amp;val;&#x0a;const int *cp = &amp;val;&#x0a;int* const pc = &amp;val;&#x0a;const int* const cpc = &amp;val;&#x0a;int &amp;r = val;&#x0a;const int &amp;cr = val;"/>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- Правая панель: визуализация -->
+        <Border Grid.Row="1" Grid.Column="1" Background="#FF1E1E1E">
+            <ctrl:NodeGraph x:Name="NodeGraphControl"
+                            MoveWithMouse="Right"
+                            ItemsSource="{Binding NodeViewModels}"
+                            ItemContainerStyle="{StaticResource DefaultNodeStyle}"
+                            NodeLinks="{Binding NodeLinkViewModels}"
+                            NodeLinkStyle="{StaticResource NodeLinkStyle}"/>
+        </Border>
+    </Grid>
+</Window>
